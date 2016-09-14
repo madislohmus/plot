@@ -101,7 +101,6 @@ func drawLine(i *image.NRGBA, c color.NRGBA, x1, x2, y1, y2 int64) {
 			x1 = x2
 			x2 = temp
 		}
-
 		for m := x1; m < x2; m++ {
 			y := int64(float64(m-x1)/float64(x2-x1)*float64(y2-y1)) + y1
 			i.Set(int(m), int(y), c)
