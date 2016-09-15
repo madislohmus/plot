@@ -3,11 +3,14 @@ package main
 import (
 	"bytes"
 	"errors"
+	"flag"
 	"fmt"
+	"html/template"
 	"image/color"
 	"log"
 	"math/rand"
 	"net/http"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -21,7 +24,9 @@ const (
 )
 
 var (
-	colorRegex = regexp.MustCompile("[a-f0-9]{6}")
+	colorRegex    = regexp.MustCompile("[a-f0-9]{6}")
+	templateDir   = flag.String("d", "", "Template directory")
+	indexTemplate *template.Template
 )
 
 func getSize(r *http.Request, target *int) error {
@@ -176,11 +181,22 @@ func handleLineChart(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleInfo(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte(`<html><head></head><body><p>Examples</p><a href="http://plotme.ee/bar?size=100&values=1,2,3&colors=ff0000,00ff00,0000ff">bar</a><br><a href="http://plotme.ee/line?size=500&values=1,2,1&color=ff0000">line</a><br><a href="http://plotme.ee/pie?size=500&values=1,2,4&colors=ff0000,00ff00,0000ff">pie</a>`))
+	indexTemplate.Execute(w, map[string]string{"host": r.Host})
 }
 
+func initTemplate() {
+	var err error
+	indexTemplate, err = template.ParseFiles(filepath.Join(*templateDir, "index.html"))
+	if err != nil {
+		panic(err)
+	}
+}
 func main() {
 	rand.Seed(time.Now().Unix())
+	if !flag.Parsed() {
+		flag.Parse()
+	}
+	initTemplate()
 	http.HandleFunc("/", handleInfo)
 	http.HandleFunc("/bar", handleBarChart)
 	http.HandleFunc("/pie", handlePieChart)

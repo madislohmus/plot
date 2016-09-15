@@ -1,0 +1,74 @@
+<html>
+<head>
+<style>
+p {
+     width: 400px;
+}
+img {
+    float: right;
+    margin: 0px 0px 15px 20px;
+}
+</style>
+</head>
+<body>
+
+<h3> Routes </h3>
+<ul>
+	<li> /bar, /pie, /line - graph variants </li>
+</ul>
+
+<h3> Query parameters </h3>
+<ul>
+	<li> values, v - (required) list of integer values to graph. /pie expects only positive values.</li>
+	<li> size, s - (optional) the size of the resulting image (max 1024)</li>
+	<li> color/colors, c - (optional) color(s) to use when graphing in hex notation (e.g. ff0000). /line expects color. /bar and /pie expect colors. Colors list will be rotated when less than values count of colors are defined</li>
+	<li> donut - (optional) Only affects /pie. If set to true, pie chart is drawn as a donut.</li>
+</ul>
+<h3>Examples</h3>
+
+<table width="600">
+
+<tr>
+<td>Simple bar graph with randomly defined color: <a href="http://{{ .host }}/bar?size=100&values=1,2,3">http://{{ .host }}/bar?size=100&values=1,2,3</a></td>
+<td><img src="http://{{ .host }}/bar?size=100&values=1,2,3" alt="image" height="100" width="100"></td>
+</tr>
+
+<tr>
+<td>Simple bar graph with randomly defined color using short notation: <a href="http://{{ .host }}/bar?s=100&v=1,2,3">http://{{ .host }}/bar?s=100&v=1,2,3</a></td>
+<td><img src="http://{{ .host }}/bar?s=100&v=1,2,3" alt="image" height="100" width="100"></td>
+</tr>
+
+<tr>
+<td>Simple bar graph with red color: <a href="http://{{ .host }}/bar?s=100&v=1,2,3&colors=ff0000">http://{{ .host }}/bar?s=100&v=1,2,3&colors=ff0000</a></td>
+<td><img src="http://{{ .host }}/bar?s=100&v=1,2,3&colors=ff0000" alt="image" height="100" width="100"></td>
+</tr>
+
+<tr>
+<td>Simple bar graph with different defined colors: <a href="http://{{ .host }}/bar?s=100&v=1,2,3&c=ff0000,00ff00,0000ff">http://{{ .host }}/bar?s=100&v=1,2,3&c=ff0000,00ff00,0000ff</a></td>
+<td><img src="http://{{ .host }}/bar?s=100&v=1,2,3&c=ff0000,00ff00,0000ff" alt="image" height="100" width="100"></td>
+</tr>
+
+<tr>
+<td>Simple bar graph with different defined colors (colors will cycle): <a href="http://{{ .host }}/bar?s=100&v=1,2,3,5,8,13&c=ff0000,00ff00,0000ff">http://{{ .host }}/bar?s=100&v=1,2,3,5,8,13&c=ff0000,00ff00,0000ff</a></td>
+<td><img src="http://{{ .host }}/bar?s=100&v=1,2,3,5,8,13&c=ff0000,00ff00,0000ff" alt="image" height="100" width="100"></td>
+</tr>
+
+<tr>
+<td>Line graph: <a href="http://{{ .host }}/line?s=100&v=1,2,3,5,8,13&c=ff0000">http://{{ .host }}/line?s=100&v=1,2,3,5,8,13&c=ff0000</a></td>
+<td><img src="http://{{ .host }}/line?s=100&v=1,2,3,5,8,13&c=ff0000" alt="image" height="100" width="100"></td>
+</tr>
+
+<tr>
+<td>Pie graph: <a href="http://{{ .host }}/pie?s=100&v=1,2,3,5,8,13">http://{{ .host }}/pie?s=100&v=1,2,3,5,8,13</a></td>
+<td><img src="http://{{ .host }}/pie?s=100&v=1,2,3,5,8,13" alt="image" height="100" width="100"></td>
+</tr>
+
+<tr>
+<td>Pie graph (donut): <a href="http://{{ .host }}/pie?s=100&v=1,2,3,5,8,13&donut=true">http://{{ .host }}/pie?s=100&v=1,2,3,5,8,1&donut=true</a></td>
+<td><img src="http://{{ .host }}/pie?s=100&v=1,2,3,5,8,13&donut=true" alt="image" height="100" width="100"></td>
+</tr>
+
+</table>
+
+</body>
+</html>
