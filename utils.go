@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/hex"
-	"fmt"
 	"image"
 	"image/color"
 	"math"
@@ -79,43 +78,95 @@ func getSectorBoundingBox(startAngle, endAngle float64, size int64) (int64, int6
 	return int64(float64(x1) + r), int64(float64(x2) + r), int64(float64(y1) + r), int64(float64(y2) + r)
 }
 
-func drawLine(i *image.NRGBA, c color.NRGBA, x1, x2, y1, y2 int64) {
+// fractional part of x
+func fpart(x float64) float64 {
+	if x < 0 {
+		return 1 - (x - float64(int(x)))
+	}
+	return x - float64(int(x))
+}
+
+func rfpart(x float64) float64 {
+	return 1 - fpart(x)
+}
+
+func drawLine(i *image.NRGBA, c color.NRGBA, x0, x1, y0, y1 float64) {
 	alpha := c.A
-	if math.Abs(float64(y2-y1)) > math.Abs(float64(x2-x1)) {
-		if y2 < y1 {
-			temp := y1
-			y1 = y2
-			y2 = temp
-			temp = x1
-			x1 = x2
-			x2 = temp
-		}
-		for y := y1; y < y2; y++ {
-			x := float64(y-y1)/float64(y2-y1)*float64(x2-x1) + float64(x1)
-			prev := math.Floor(x)
-			frac := x - prev
-			c.A = uint8(float64(alpha) * (1.0 - frac))
-			i.Set(int(prev), int(y), c)
-			c.A = uint8(float64(alpha) * frac)
-			i.Set(int(prev)+1, int(y), c)
+	steep := math.Abs(float64(y1)-float64(y0)) > math.Abs(float64(x1)-float64(x0))
+	if steep {
+		temp := x0
+		x0 = y0
+		y0 = temp
+		temp = x1
+		x1 = y1
+		y1 = temp
+	}
+	if x0 > x1 {
+		temp := x0
+		x0 = x1
+		x1 = temp
+		temp = y0
+		y0 = y1
+		y1 = temp
+	}
+
+	dx := x1 - x0
+	dy := y1 - y0
+	gradient := dy / dx
+
+	// handle first endpoint
+	xend := int(x0 + 0.5)
+	yend := y0 + gradient*(float64(xend)-x0)
+	xgap := rfpart(x0 + 1.5)
+	xpxl1 := xend // this will be used in the main loop
+	ypxl1 := int(yend)
+	if steep {
+		c.A = uint8(float64(alpha) * rfpart(yend) * xgap)
+		i.Set(ypxl1, xpxl1, c)
+		c.A = uint8(float64(alpha) * fpart(yend) * xgap)
+		i.Set(ypxl1+1, xpxl1, c)
+	} else {
+		c.A = uint8(float64(alpha) * rfpart(yend) * xgap)
+		i.Set(xpxl1, ypxl1, c)
+		c.A = uint8(float64(alpha) * fpart(yend) * xgap)
+		i.Set(xpxl1, ypxl1+1, c)
+	}
+	intery := yend + gradient // first y-intersection for the main loop
+
+	// handle second endpoint
+	xend = int(x1 + 0.5)
+	yend = y1 + gradient*(float64(xend)-x1)
+	xgap = fpart(x1 + 0.5)
+	xpxl2 := xend //this will be used in the main loop
+	ypxl2 := int(yend)
+	if steep {
+		c.A = uint8(float64(alpha) * rfpart(yend) * xgap)
+		i.Set(ypxl2, xpxl2, c)
+		c.A = uint8(float64(alpha) * fpart(yend) * xgap)
+		i.Set(ypxl2+1, xpxl2, c)
+	} else {
+		c.A = uint8(float64(alpha) * rfpart(yend) * xgap)
+		i.Set(xpxl2, ypxl2, c)
+		c.A = uint8(float64(alpha) * fpart(yend) * xgap)
+		i.Set(xpxl2, ypxl2+1, c)
+	}
+
+	// main loop
+	if steep {
+		for x := xpxl1 + 1; x <= xpxl2; x++ {
+			c.A = uint8(float64(alpha) * rfpart(intery))
+			i.Set(int(intery), x, c)
+			c.A = uint8(float64(alpha) * fpart(intery))
+			i.Set(int(intery)+1, x, c)
+			intery = intery + gradient
 		}
 	} else {
-		if x2 < x1 {
-			temp := y1
-			y1 = y2
-			y2 = temp
-			temp = x1
-			x1 = x2
-			x2 = temp
-		}
-		for x := x1; x < x2; x++ {
-			y := float64(x-x1)/float64(x2-x1)*float64(y2-y1) + float64(y1)
-			prev := math.Floor(y)
-			frac := y - prev
-			c.A = uint8(float64(alpha) * (1.0 - frac))
-			i.Set(int(x), int(prev), c)
-			c.A = uint8(float64(alpha) * frac)
-			i.Set(int(x), int(prev)+1, c)
+		for x := xpxl1 + 1; x <= xpxl2; x++ {
+			c.A = uint8(float64(alpha) * rfpart(intery))
+			i.Set(x, int(intery), c)
+			c.A = uint8(float64(alpha) * fpart(intery))
+			i.Set(x, int(intery)+1, c)
+			intery = intery + gradient
 		}
 	}
 }

@@ -120,14 +120,15 @@ func pieChart(size int, values []int64, colorsArray []color.NRGBA, donut bool) i
 func lineChart(size int, values []int64, c color.NRGBA) image.Image {
 	min, max := extremes(values)
 	i := image.NewNRGBA(image.Rect(0, 0, size, size))
+	thickness := float64(size) / float64(len(values))
 	span := max - min
+	x1 := thickness / 2
 	for nr := 1; nr < len(values); nr++ {
-		thickness := float64(size) / float64(len(values))
-		x1 := float64(nr-1)*thickness + thickness/2
 		x2 := x1 + thickness
-		y1 := int64(size) - int64(float64(values[nr-1]-min)/float64(span)*float64(size))
-		y2 := int64(size) - int64(float64(values[nr]-min)/float64(span)*float64(size))
-		drawLine(i, c, int64(x1), int64(x2), y1, y2)
+		y1 := float64(size) - float64(values[nr-1]-min)/float64(span)*float64(size)
+		y2 := float64(size) - float64(values[nr]-min)/float64(span)*float64(size)
+		drawLine(i, c, x1, x2, y1, y2)
+		x1 = x2
 	}
 	return i
 }
