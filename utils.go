@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/hex"
+	"fmt"
 	"image"
 	"image/color"
 	"math"
@@ -79,6 +80,7 @@ func getSectorBoundingBox(startAngle, endAngle float64, size int64) (int64, int6
 }
 
 func drawLine(i *image.NRGBA, c color.NRGBA, x1, x2, y1, y2 int64) {
+	alpha := c.A
 	if math.Abs(float64(y2-y1)) > math.Abs(float64(x2-x1)) {
 		if y2 < y1 {
 			temp := y1
@@ -88,9 +90,14 @@ func drawLine(i *image.NRGBA, c color.NRGBA, x1, x2, y1, y2 int64) {
 			x1 = x2
 			x2 = temp
 		}
-		for m := y1; m < y2; m++ {
-			x := int64(float64(m-y1)/float64(y2-y1)*float64(x2-x1)) + x1
-			i.Set(int(x), int(m), c)
+		for y := y1; y < y2; y++ {
+			x := float64(y-y1)/float64(y2-y1)*float64(x2-x1) + float64(x1)
+			prev := math.Floor(x)
+			frac := x - prev
+			c.A = uint8(float64(alpha) * (1.0 - frac))
+			i.Set(int(prev), int(y), c)
+			c.A = uint8(float64(alpha) * frac)
+			i.Set(int(prev)+1, int(y), c)
 		}
 	} else {
 		if x2 < x1 {
@@ -101,9 +108,14 @@ func drawLine(i *image.NRGBA, c color.NRGBA, x1, x2, y1, y2 int64) {
 			x1 = x2
 			x2 = temp
 		}
-		for m := x1; m < x2; m++ {
-			y := int64(float64(m-x1)/float64(x2-x1)*float64(y2-y1)) + y1
-			i.Set(int(m), int(y), c)
+		for x := x1; x < x2; x++ {
+			y := float64(x-x1)/float64(x2-x1)*float64(y2-y1) + float64(y1)
+			prev := math.Floor(y)
+			frac := y - prev
+			c.A = uint8(float64(alpha) * (1.0 - frac))
+			i.Set(int(x), int(prev), c)
+			c.A = uint8(float64(alpha) * frac)
+			i.Set(int(x), int(prev)+1, c)
 		}
 	}
 }
