@@ -78,11 +78,15 @@ func barChart(size int, values []int64, colorsArray []color.NRGBA) image.Image {
 }
 
 func pieChart(size int, values []int64, colorsArray []color.NRGBA, donut bool) image.Image {
+	size *= 2
 	sum := int64(0)
 	for _, value := range values {
 		sum += value
 	}
-	i := image.NewNRGBA(image.Rect(0, 0, size, size))
+	table := [][]color.NRGBA{}
+	for i := 0; i < size; i++ {
+		table = append(table, make([]color.NRGBA, size))
+	}
 	angle := float64(0)
 	r := float64(size / 2.0)
 	innerR := 0.4 * r
@@ -102,16 +106,27 @@ func pieChart(size int, values []int64, colorsArray []color.NRGBA, donut bool) i
 			for n := n1; n <= n2; n++ {
 				y := r - float64(n)
 				vr := math.Sqrt(x2 + math.Pow(y, 2.0))
-				if (innerR < vr || !donut) && vr <= r {
+				if (innerR < vr || !donut) && vr < r {
 					atan2 := math.Atan2(y, x)
 					if atan2 < 0 {
 						atan2 = 2*math.Pi + atan2
 					}
 					if atan2 < angle && atan2 >= oldAngle {
-						i.Set(int(m), int(n), c)
+						table[m][n] = c
 					}
 				}
 			}
+		}
+	}
+	i := image.NewNRGBA(image.Rect(0, 0, size/2, size/2))
+	for x := 0; x < size/2; x++ {
+		for y := 0; y < size/2; y++ {
+			c := color.NRGBA{}
+			c.R = table[2*x][2*y].R/4 + table[2*x+1][2*y].R/4 + table[2*x][2*y+1].R/4 + table[2*x+1][2*y+1].R/4
+			c.G = table[2*x][2*y].G/4 + table[2*x+1][2*y].G/4 + table[2*x][2*y+1].G/4 + table[2*x+1][2*y+1].G/4
+			c.B = table[2*x][2*y].B/4 + table[2*x+1][2*y].B/4 + table[2*x][2*y+1].B/4 + table[2*x+1][2*y+1].B/4
+			c.A = table[2*x][2*y].A/4 + table[2*x+1][2*y].A/4 + table[2*x][2*y+1].A/4 + table[2*x+1][2*y+1].A/4
+			i.Set(x, y, c)
 		}
 	}
 	return i
