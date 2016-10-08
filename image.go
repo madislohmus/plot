@@ -122,10 +122,15 @@ func pieChart(size int, values []int64, colorsArray []color.NRGBA, donut bool) i
 	for x := 0; x < size/2; x++ {
 		for y := 0; y < size/2; y++ {
 			c := color.NRGBA{}
-			c.R = table[2*x][2*y].R/4 + table[2*x+1][2*y].R/4 + table[2*x][2*y+1].R/4 + table[2*x+1][2*y+1].R/4
-			c.G = table[2*x][2*y].G/4 + table[2*x+1][2*y].G/4 + table[2*x][2*y+1].G/4 + table[2*x+1][2*y+1].G/4
-			c.B = table[2*x][2*y].B/4 + table[2*x+1][2*y].B/4 + table[2*x][2*y+1].B/4 + table[2*x+1][2*y+1].B/4
-			c.A = table[2*x][2*y].A/4 + table[2*x+1][2*y].A/4 + table[2*x][2*y+1].A/4 + table[2*x+1][2*y+1].A/4
+			a1 := float64(table[2*x][2*y].A) / 255.0
+			a2 := float64(table[2*x+1][2*y].A) / 255.0
+			a3 := float64(table[2*x][2*y+1].A) / 255.0
+			a4 := float64(table[2*x+1][2*y+1].A) / 255.0
+			m := 4.0 / (a1 + a2 + a3 + a4)
+			c.R = uint8(m*(1-a1)*float64(table[2*x][2*y].R/4)) + uint8(m*(1-a2)*float64(table[2*x+1][2*y].R/4)) + uint8(m*(1-a3)*float64(table[2*x][2*y+1].R/4)) + uint8(m*(1-a4)*float64(table[2*x+1][2*y+1].R/4))
+			c.G = uint8(m*(1-a1)*float64(table[2*x][2*y].G/4)) + uint8(m*(1-a2)*float64(table[2*x+1][2*y].G/4)) + uint8(m*(1-a3)*float64(table[2*x][2*y+1].G/4)) + uint8(m*(1-a4)*float64(table[2*x+1][2*y+1].G/4))
+			c.B = uint8(m*(1-a1)*float64(table[2*x][2*y].B/4)) + uint8(m*(1-a1)*float64(table[2*x+1][2*y].B/4)) + uint8(m*(1-a3)*float64(table[2*x][2*y+1].B/4)) + uint8(m*(1-a4)*float64(table[2*x+1][2*y+1].B/4))
+			c.A = uint8(255 * (a1 + a2 + a3 + a4) / 4)
 			i.Set(x, y, c)
 		}
 	}
