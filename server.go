@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"errors"
 	"flag"
 	"fmt"
 	"html/template"
@@ -53,7 +52,7 @@ func getSize(r *http.Request, target *int) error {
 		sizei, err := strconv.ParseInt(size, 10, 64)
 		if err == nil && sizei > 0 {
 			if sizei > maxSize {
-				return fmt.Errorf("Maximum allowed size is %d\n", maxSize)
+				return clientError{Message: fmt.Sprintf("Maximum allowed size is %d\n", maxSize)}
 			}
 			*target = int(sizei)
 		}
@@ -71,19 +70,19 @@ func getValues(r *http.Request, allowNegative bool) (values []int64, err error) 
 		for _, valueString := range valuesStringArray {
 			value, err := strconv.ParseInt(valueString, 10, 64)
 			if err != nil {
-				return nil, fmt.Errorf("Could not convert %s to integer", valueString)
+				return nil, clientError{Message: fmt.Sprintf("Could not convert %s to integer", valueString)}
 			}
 			if value < 0 && !allowNegative {
-				return nil, fmt.Errorf("Only positive integers allowed")
+				return nil, clientError{Message: "Only positive integers allowed"}
 			}
 			values = append(values, value)
 		}
 	}
 	if len(values) == 0 {
-		return nil, errors.New("No values provided")
+		return nil, clientError{Message: "No values provided"}
 	}
 	if len(values) > maxValues {
-		return nil, errors.New("Maximum 100 values allowed")
+		return nil, clientError{Message: "Maximum 100 values allowed"}
 	}
 	return
 }
@@ -98,7 +97,7 @@ func getColors(r *http.Request) (colors []color.NRGBA, err error) {
 		for nr, colorString := range colorsStringArray {
 			matches := colorRegex.MatchString(colorString)
 			if !matches {
-				err = fmt.Errorf("Color %s at position %d is not a valid html color", colorString, nr)
+				err = clientError{Message: fmt.Sprintf("Color %s at position %d is not a valid html color", colorString, nr)}
 				return
 			}
 			colors = append(colors, getColorFromHTML(colorString))
@@ -130,7 +129,7 @@ func insertPlotData(r *http.Request, data []byte) error {
 func handleBarChart(w http.ResponseWriter, r *http.Request) {
 	data, err := getExistingData(r)
 	if err != nil {
-		w.Write([]byte(err.Error()))
+		writeError(err, w)
 		return
 	}
 	if data != nil {
@@ -140,27 +139,28 @@ func handleBarChart(w http.ResponseWriter, r *http.Request) {
 	sizeInt := defaultSize
 	err = getSize(r, &sizeInt)
 	if err != nil {
-		w.Write([]byte(err.Error()))
+		writeError(err, w)
 		return
 	}
 	values, err := getValues(r, true)
 	if err != nil {
-		w.Write([]byte(err.Error()))
+		writeError(err, w)
 		return
 	}
 	colors, err := getColors(r)
 	if err != nil {
-		w.Write([]byte(err.Error()))
+		writeError(err, w)
 		return
 	}
 	buf, err := getBarChartBuffer(sizeInt, values, colors)
 	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("Could not load image"))
 		return
 	}
 	err = insertPlotData(r, buf.Bytes())
 	if err != nil {
-		w.Write([]byte(err.Error()))
+		writeError(err, w)
 		return
 	}
 	writeResult(w, buf.Bytes())
@@ -170,7 +170,7 @@ func handleBarChart(w http.ResponseWriter, r *http.Request) {
 func handlePieChart(w http.ResponseWriter, r *http.Request) {
 	data, err := getExistingData(r)
 	if err != nil {
-		w.Write([]byte(err.Error()))
+		writeError(err, w)
 		return
 	}
 	if data != nil {
@@ -181,27 +181,28 @@ func handlePieChart(w http.ResponseWriter, r *http.Request) {
 	donut := r.FormValue("donut")
 	err = getSize(r, &sizeInt)
 	if err != nil {
-		w.Write([]byte(err.Error()))
+		writeError(err, w)
 		return
 	}
 	values, err := getValues(r, false)
 	if err != nil {
-		w.Write([]byte(err.Error()))
+		writeError(err, w)
 		return
 	}
 	colors, err := getColors(r)
 	if err != nil {
-		w.Write([]byte(err.Error()))
+		writeError(err, w)
 		return
 	}
 	buf, err := getPieChartBuffer(sizeInt, values, colors, donut == "true")
 	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("Could not load image"))
 		return
 	}
 	err = insertPlotData(r, buf.Bytes())
 	if err != nil {
-		w.Write([]byte(err.Error()))
+		writeError(err, w)
 		return
 	}
 	writeResult(w, buf.Bytes())
@@ -211,7 +212,7 @@ func handlePieChart(w http.ResponseWriter, r *http.Request) {
 func handleLineChart(w http.ResponseWriter, r *http.Request) {
 	data, err := getExistingData(r)
 	if err != nil {
-		w.Write([]byte(err.Error()))
+		writeError(err, w)
 		return
 	}
 	if data != nil {
@@ -225,29 +226,31 @@ func handleLineChart(w http.ResponseWriter, r *http.Request) {
 	}
 	err = getSize(r, &sizeInt)
 	if err != nil {
-		w.Write([]byte(err.Error()))
+		writeError(err, w)
 		return
 	}
 	values, err := getValues(r, true)
 	if err != nil {
-		w.Write([]byte(err.Error()))
+		writeError(err, w)
 		return
 	}
 	if len(colorString) > 0 {
 		matches := colorRegex.MatchString(colorString)
 		if !matches {
+			w.WriteHeader(http.StatusBadRequest)
 			w.Write([]byte(fmt.Sprintf("Color %s is not a valid html color", colorString)))
 			return
 		}
 	}
 	buf, err := getLineChartBuffer(sizeInt, values, getColorFromHTML(colorString))
 	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("Could not load image"))
 		return
 	}
 	err = insertPlotData(r, buf.Bytes())
 	if err != nil {
-		w.Write([]byte(err.Error()))
+		writeError(err, w)
 		return
 	}
 	writeResult(w, buf.Bytes())

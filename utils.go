@@ -6,7 +6,27 @@ import (
 	"image/color"
 	"math"
 	"math/rand"
+	"net/http"
 )
+
+type (
+	clientError struct {
+		Message string
+	}
+)
+
+func (e clientError) Error() string {
+	return e.Message
+}
+
+func writeError(err error, w http.ResponseWriter) {
+	if _, ok := err.(clientError); ok {
+		w.WriteHeader(http.StatusBadRequest)
+	} else {
+		w.WriteHeader(http.StatusInternalServerError)
+	}
+	w.Write([]byte(err.Error()))
+}
 
 func extremes(array []int64) (int64, int64) {
 	if len(array) == 0 {
